@@ -27,6 +27,7 @@ def handle_echo_command(message):
 
 #Return Simple string for Set Command
 def handle_set_command(message):
+    message_parts = message.split()
     if len(message_parts) != 3:
         response = f"{data_ids[-1]}Error message\\r\\n".encode()
     message_parts = message.split()
@@ -72,26 +73,35 @@ def handle_redis_clients(client_socket, timeout):
                     # Process the complete message(s)
                     for message in messages[:-1]:
                         decoded_message = message.decode().strip()
+                        time_start = time.time()
                         print(f"Received From Client: {decoded_message}")
                         if decoded_message.upper().startswith("PING"):
                             response = handle_ping()
                             client_socket.sendall(response)
+                            time_end = time.time() - time_start
+                            client_socket.sendall(f"\r\n{time_end}\r\n".encode())
 
                         elif "ECHO" in decoded_message.upper():
                             response = handle_echo_command(decoded_message)
                             print("Server Response:")
                             print(response)
                             client_socket.sendall(response)
+                            time_end = time.time() - time_start
+                            client_socket.sendall(f"\r\n{time_end}\r\n".encode())
 
                         elif decoded_message.upper().startswith("SET"):
                             response = handle_set_command(decoded_message)
                             print(response)
                             client_socket.sendall(response)
+                            time_end = time.time() - time_start
+                            client_socket.sendall(f"\r\n{time_end}\r\n".encode())
                         
                         elif decoded_message.upper().startswith("GET"):
                             response = handle_get_command(decoded_message)
                             print(response)
                             client_socket.sendall(response)
+                            time_end = time.time() - time_start
+                            client_socket.sendall(f"\r\n{time_end}\r\n".encode())
 
                         else:
                             response = b"-ERR unknown command\r\n"
@@ -125,8 +135,9 @@ def handle_redis_clients(client_socket, timeout):
 
 def create_redis_server(host, port, timeout=3600):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     server_socket.bind((host, port))
-    server_socket.listen(5)
+    server_socket.listen(50)
     print(f"Server listening on {host}:{port}")
 
     while True:
